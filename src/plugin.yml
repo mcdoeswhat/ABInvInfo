@@ -1,0 +1,5 @@
+name: ABInvInfo
+version: 1.0.0
+api-version: 1.13
+main: com.loohp.interactivechatdiscordsrvaddon.InteractiveChatDiscordSrvAddon
+softdepend: [ AmazingBot,InteractiveChat,OpenInv,SkullAPI ]

@@ -1,0 +1,72 @@
+groups:
+  - "1018648079"
+# For information on what each option does. Please refer to https://github.com/LOOHP/InteractiveChat-DiscordSRV-Addon/blob/master/src/main/resources/config.yml
+Messages:
+  ReloadConfig: '&aICDiscordSRVAddon config has been reloaded!'
+  ReloadTexture: '&aICDiscordSRVAddon reloading textures--- (See console for progress)'
+  LinkExpired: '&cThis link has been expired! To view this link, please head over
+    to the linked discord channel!'
+Resources:
+  Language: en_us
+  Order: []
+InventoryImage:
+  Item:
+    Enabled: true
+    UseTooltipImage: true
+    UseTooltipImageOnBaseItem: false
+    EmbedDisplay:
+      Single: '{Item}'
+      Multiple: '{Item} x{Amount}'
+  Inventory:
+    Enabled: true
+    UsePlayerInventoryView: true
+    EmbedColor: '#55FFFF'
+  EnderChest:
+    Enabled: true
+    EmbedColor: '#FF55FF'
+HoverEventDisplay:
+  Enabled: true
+  ShowCursorImage: true
+  UseTooltipImage: true
+  IgnoredPlaceholderIndexes: []
+DiscordAttachments:
+  Convert: true
+  ShowImageUsingMaps: true
+  Timeout: 86400
+  Formatting:
+    Text: '&e[&b{FileName}&e]'
+    ImageOriginal: ' &a(Link)'
+    Hover:
+      Enabled: true
+      HoverText:
+        - '&bClick to View'
+      ImageOriginalHover:
+        - '&eOpen Original'
+  RestrictImageUrl:
+    Enabled: false
+    Whitelist:
+      - https://i.imgur.com
+      - http://i.imgur.com
+      - https://storage.googleapis.com
+      - http://storage.googleapis.com
+      - https://cdn.discordapp.com
+      - http://cdn.discordapp.com
+      - https://media.discordapp.net
+      - http://media.discordapp.net
+      - https://textures.minecraft.net
+      - http://textures.minecraft.net
+Options:
+  Updater: false
+Settings:
+  CacheTimeout: 300
+  EscapePlaceholdersSentFromDiscord: true
+  EscapeDiscordMarkdownFormattingInItems: true
+  ReducedAssetsDownloadInfo: false
+DiscordMention:
+  TranslateMentions: true
+  MentionedSound: ENTITY_EXPERIENCE_ORB_PICKUP
+  MentionedTitle: '&c&lMentioned'
+  MentionedTitleDuration: 1.5
+  DiscordMentionSubtitle: '&9{DiscordUser} &fmentioned you in &9{TextChannel}!'
+  DiscordMentionActionbar: ''
+  MentionHighlight: '&9{DiscordMention}'
