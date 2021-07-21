@@ -318,7 +318,7 @@ public class ImageGeneration {
                 image = (BufferedImage) cache.getObject();
             }
             image = ImageUtils.copyImage(image);
-            if (slim && false) {
+            if (false) {
                 BufferedImage rightArm = ImageUtils.copyAndGetSubImage(image, 0, 32, 12, 48);
                 BufferedImage leftArm = ImageUtils.copyAndGetSubImage(image, 52, 32, 12, 48);
                 Color color = new Color(0, 0, 0, 255);
@@ -339,7 +339,9 @@ public class ImageGeneration {
                 g.dispose();
             }
         } catch (Throwable e) {
-            e.printStackTrace();
+           if (InteractiveChatDiscordSrvAddon.plugin.getConfig().getBoolean("debug")){
+               e.printStackTrace();
+           }
             image = InteractiveChatDiscordSrvAddon.plugin.getPuppetTexture("default");
         }
 
@@ -804,7 +806,9 @@ public class ImageGeneration {
                     }
                 }
             } catch (Exception e) {
-                e.printStackTrace();
+                if (InteractiveChatDiscordSrvAddon.plugin.getConfig().getBoolean("debug")){
+                    e.printStackTrace();
+                }
             }
         } else if (item.getItemMeta() instanceof LeatherArmorMeta) {
             LeatherArmorMeta meta = (LeatherArmorMeta) item.getItemMeta();

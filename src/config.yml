@@ -1,5 +1,6 @@
 groups:
-  - "1018648079"
+  - ""
+debug: false
 # For information on what each option does. Please refer to https://github.com/LOOHP/InteractiveChat-DiscordSRV-Addon/blob/master/src/main/resources/config.yml
 Messages:
   ReloadConfig: '&aICDiscordSRVAddon config has been reloaded!'
