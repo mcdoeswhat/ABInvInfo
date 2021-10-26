@@ -1,23 +1,24 @@
+
 package com.loohp.interactivechatdiscordsrvaddon.graphics;
 
 import com.google.gson.Gson;
 import com.google.gson.JsonObject;
 import com.loohp.interactivechat.InteractiveChat;
-import com.loohp.interactivechat.Utils.SkullUtils;
-import com.loohp.interactivechat.Utils.XMaterial;
+import com.loohp.interactivechat.libs.com.cryptomorin.xseries.SkullUtils;
+import com.loohp.interactivechat.libs.com.cryptomorin.xseries.XMaterial;
+import com.loohp.interactivechat.libs.net.kyori.adventure.text.Component;
+import com.loohp.interactivechat.libs.net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer;
+import com.loohp.interactivechat.libs.org.json.simple.JSONObject;
+import com.loohp.interactivechat.libs.org.json.simple.parser.JSONParser;
+import com.loohp.interactivechat.libs.org.json.simple.parser.ParseException;
 import com.loohp.interactivechat.utils.*;
 import com.loohp.interactivechatdiscordsrvaddon.Cache;
 import com.loohp.interactivechatdiscordsrvaddon.InteractiveChatDiscordSrvAddon;
-import com.loohp.interactivechatdiscordsrvaddon.utils.ItemStackUtils;
+import com.loohp.interactivechatdiscordsrvaddon.debug.Debug;
 import com.loohp.interactivechatdiscordsrvaddon.utils.PotionUtils;
 import com.loohp.interactivechatdiscordsrvaddon.utils.VectorUtils;
 import com.loohp.interactivechatdiscordsrvaddon.wrappers.ItemMapWrapper;
-import com.loohp.interactivechatdiscordsrvaddon.wrappers.ItemMapWrapper.MapIcon;
 import me.albert.skullapi.SkullAPI;
-import net.md_5.bungee.api.ChatColor;
-import net.md_5.bungee.api.chat.BaseComponent;
-import net.md_5.bungee.api.chat.TextComponent;
-import net.md_5.bungee.chat.ComponentSerializer;
 import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.World.Environment;
@@ -26,13 +27,11 @@ import org.bukkit.inventory.EntityEquipment;
 import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.*;
+import org.bukkit.map.MapCursor;
 import org.bukkit.map.MapPalette;
 import org.bukkit.potion.Potion;
 import org.bukkit.potion.PotionType;
 import org.bukkit.util.Vector;
-import org.json.simple.JSONObject;
-import org.json.simple.parser.JSONParser;
-import org.json.simple.parser.ParseException;
 
 import javax.annotation.Nonnull;
 import java.awt.*;
@@ -74,7 +73,7 @@ public class ImageGeneration {
     }
 
     private static final String TEXTURE_MINECRAFT_URL = "http://textures.minecraft.net/texture/";
-    private static final String PLAYER_RENDER_URL = "https://visage.surgeplay.com/full/128/%s";
+    private static String PLAYER_RENDER_URL = "https://visage.surgeplay.com/full/128/%s";
     private static final String SKULL_RENDER_URL = "https://mc-heads.net/head/%s/96";
     private static final String HEAD_2D_RENDER_URL = "https://mc-heads.net/avatar/%s/32";
 
@@ -172,7 +171,7 @@ public class ImageGeneration {
         return target;
     }
 
-    public static BufferedImage getPlayerInventoryImage(Inventory inventory, Player player) throws Exception {
+    public static BufferedImage getPlayerInventoryImage(Inventory inventory, Player player, boolean... orig) throws Exception {
         InteractiveChatDiscordSrvAddon.plugin.imageCounter.incrementAndGet();
         InteractiveChatDiscordSrvAddon.plugin.inventoryImageCounter.incrementAndGet();
 
@@ -282,7 +281,11 @@ public class ImageGeneration {
         //puppet
         EntityEquipment equipment = player.getEquipment();
         BufferedImage puppet = getFullBodyImage(player, equipment.getHelmet(), equipment.getChestplate(), equipment.getLeggings(), equipment.getBoots());
-        g.drawImage(puppet, 58, 20, null);
+        int x = 58;
+        if (InteractiveChatDiscordSrvAddon.plugin.getConfig().getBoolean("2dskin")) {
+            x = 65;
+        }
+        g.drawImage(puppet, x, 20, null);
 
         g.dispose();
 
@@ -294,6 +297,9 @@ public class ImageGeneration {
     private static BufferedImage getFullBodyImage(Player player, ItemStack helmet, ItemStack chestplate, ItemStack leggings, ItemStack boots) {
         InteractiveChatDiscordSrvAddon.plugin.imageCounter.incrementAndGet();
         BufferedImage image;
+        if (InteractiveChatDiscordSrvAddon.plugin.getConfig().getBoolean("2dskin")) {
+            PLAYER_RENDER_URL = "https://mc-heads.net/player/%s/64";
+        }
         try {
             ItemStack skull = SkullAPI.getSkull(player.getName());
             String value = null;
@@ -339,9 +345,9 @@ public class ImageGeneration {
                 g.dispose();
             }
         } catch (Throwable e) {
-           if (InteractiveChatDiscordSrvAddon.plugin.getConfig().getBoolean("debug")){
-               e.printStackTrace();
-           }
+            if (InteractiveChatDiscordSrvAddon.plugin.getConfig().getBoolean("debug")) {
+                e.printStackTrace();
+            }
             image = InteractiveChatDiscordSrvAddon.plugin.getPuppetTexture("default");
         }
 
@@ -349,7 +355,7 @@ public class ImageGeneration {
 
         Graphics2D g = image.createGraphics();
         g.setRenderingHint(RenderingHints.KEY_INTERPOLATION, RenderingHints.VALUE_INTERPOLATION_NEAREST_NEIGHBOR);
-        if (true){
+        if (true) {
             g.dispose();
             return image;
         }
@@ -806,7 +812,7 @@ public class ImageGeneration {
                     }
                 }
             } catch (Exception e) {
-                if (InteractiveChatDiscordSrvAddon.plugin.getConfig().getBoolean("debug")){
+                if (InteractiveChatDiscordSrvAddon.plugin.getConfig().getBoolean("debug")) {
                     e.printStackTrace();
                 }
             }
@@ -1014,11 +1020,12 @@ public class ImageGeneration {
         return itemImage;
     }
 
-    public static BufferedImage getMapImage(ItemStack item) throws Exception {
+    public static BufferedImage getMapImage(ItemStack item, Player player) throws Exception {
         if (!FilledMapUtils.isFilledMap(item)) {
             throw new IllegalArgumentException("Provided item is not a filled map");
         }
         InteractiveChatDiscordSrvAddon.plugin.imageCounter.incrementAndGet();
+        Debug.debug("ImageGeneration creating map image");
 
         BufferedImage background = InteractiveChatDiscordSrvAddon.plugin.getGUITexture("map_background");
 
@@ -1031,7 +1038,7 @@ public class ImageGeneration {
         int borderOffset = (int) (image.getWidth() / 23.3333333333333333333);
         int ratio = (image.getWidth() - borderOffset * 2) / 128;
 
-        ItemMapWrapper data = new ItemMapWrapper(item);
+        ItemMapWrapper data = new ItemMapWrapper(item, player);
         for (int widthOffset = 0; widthOffset < 128; widthOffset++) {
             for (int heightOffset = 0; heightOffset < 128; heightOffset++) {
                 byte index = data.getColors()[widthOffset + heightOffset * 128];
@@ -1052,12 +1059,12 @@ public class ImageGeneration {
         BufferedImage asset = InteractiveChatDiscordSrvAddon.plugin.getGUITexture("map_icons");
         int iconWidth = asset.getWidth() / MAP_ICON_PER_ROLE;
 
-        for (MapIcon icon : data.getMapIcons()) {
+        for (MapCursor icon : data.getMapCursors()) {
             int x = icon.getX() + 128;
             int y = icon.getY() + 128;
-            double rotation = (360.0 / 16.0 * (double) icon.getRotation()) + 180.0;
+            double rotation = (360.0 / 16.0 * (double) icon.getDirection()) + 180.0;
             int type = icon.getType().ordinal();
-            BaseComponent baseComponent = icon.getName();
+            Component component = LegacyComponentSerializer.legacySection().deserializeOrNull(icon.getCaption());
 
             //String name
             BufferedImage iconImage = ImageUtils.copyAndGetSubImage(asset, type % MAP_ICON_PER_ROLE * iconWidth, type / MAP_ICON_PER_ROLE * iconWidth, iconWidth, iconWidth);
@@ -1081,8 +1088,8 @@ public class ImageGeneration {
 
             g2.drawImage(iconCan, imageX - (iconCan.getWidth() / 2), imageY - (iconCan.getHeight() / 2), 96, 96, null);
 
-            if (baseComponent != null && MCFont.isWorking()) {
-                ImageUtils.printComponentNoShadow(image, baseComponent, imageX, imageY + 32, 30, true);
+            if (component != null && MCFont.isWorking()) {
+
             }
         }
         g2.dispose();
@@ -1090,62 +1097,39 @@ public class ImageGeneration {
         return image;
     }
 
-    public static BufferedImage getToolTipImage(BaseComponent print) throws Exception {
-        return getToolTipImage(Collections.singletonList(print), false);
+    public static BufferedImage getToolTipImage(Component print) throws Exception {
+        return getToolTipImage(Arrays.asList(print), false);
     }
 
-    public static BufferedImage getToolTipImage(BaseComponent print, boolean allowLineBreaks) throws Exception {
-        return getToolTipImage(Collections.singletonList(print), allowLineBreaks);
+    public static BufferedImage getToolTipImage(Component print, boolean allowLineBreaks) throws Exception {
+        return getToolTipImage(Arrays.asList(print), allowLineBreaks);
     }
 
-    public static BufferedImage getToolTipImage(List<BaseComponent> prints) throws Exception {
+    public static BufferedImage getToolTipImage(List<Component> prints) throws Exception {
         return getToolTipImage(prints, false);
     }
 
-    public static BufferedImage getToolTipImage(List<BaseComponent> prints, boolean allowLineBreaks) throws Exception {
-        if (allowLineBreaks) {
-            List<BaseComponent> newPrints = new ArrayList<>();
-            for (BaseComponent base : prints) {
-                List<BaseComponent> current = new ArrayList<>();
-                for (BaseComponent each : CustomStringUtils.loadExtras(base)) {
-                    if (each instanceof TextComponent) {
-                        TextComponent textComponent = (TextComponent) each;
-                        String[] lines = textComponent.getText().split("\\R", -1);
-                        if (lines.length <= 1) {
-                            current.add(each);
-                        } else {
-                            for (int i = 0; i < lines.length; i++) {
-                                String text = lines[i];
-                                TextComponent clone = ChatComponentUtils.clone(textComponent);
-                                clone.setText(text);
-                                current.add(clone);
-                                newPrints.add(ChatComponentUtils.join(current.toArray(new BaseComponent[current.size()])));
-                                if (i <= lines.length - 1) {
-                                    current = new ArrayList<>();
-                                }
-                            }
-                        }
-                    } else {
-                        current.add(each);
-                    }
-                }
-                if (!current.isEmpty()) {
-                    newPrints.add(ChatComponentUtils.join(current.toArray(new BaseComponent[current.size()])));
-                }
-            }
-            prints = newPrints;
+    public static BufferedImage getToolTipImage(List<Component> prints, boolean allowLineBreaks) throws Exception {
+        if (prints.isEmpty()) {
+            Debug.debug("ImageGeneration creating tooltip image");
+        } else {
+            Debug.debug("ImageGeneration creating tooltip image of " + InteractiveChatComponentSerializer.bungeecordApiLegacy().serialize(prints.get(0)));
         }
 
-        for (int i = 0; i < prints.size(); i++) {
-            System.out.println(i + "-: " + ComponentSerializer.toString(prints.get(i)).replace(ChatColor.COLOR_CHAR, '$'));
+        if (allowLineBreaks) {
+            List<Component> newList = new ArrayList<>();
+            for (Component component : prints) {
+                newList.addAll(ComponentStyling.splitAtLineBreaks(component));
+            }
+            prints = newList;
         }
 
         BufferedImage image = new BufferedImage(1120, prints.size() * 20 + 15, BufferedImage.TYPE_INT_ARGB);
 
-        for (int i = 0; i < prints.size(); i++) {
-            BaseComponent text = prints.get(i);
-            ImageUtils.printComponent(image, text, 8, 8 + 20 * i, 16);
+        if (!MCFont.isWorking()) {
+            return getMissingImage(image.getWidth(), image.getHeight());
         }
+
 
         int lastX = 0;
         for (int x = 0; x < image.getWidth() - 9; x++) {
@@ -1173,5 +1157,6 @@ public class ImageGeneration {
 
         return background;
     }
+
 
 }

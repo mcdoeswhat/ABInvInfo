@@ -1,6 +1,8 @@
 groups:
   - ""
 debug: false
+#是否把皮肤改为更稳定的2D渲染api 显示不了皮肤改为true即可
+2dskin: false
 # For information on what each option does. Please refer to https://github.com/LOOHP/InteractiveChat-DiscordSRV-Addon/blob/master/src/main/resources/config.yml
 Messages:
   ReloadConfig: '&aICDiscordSRVAddon config has been reloaded!'

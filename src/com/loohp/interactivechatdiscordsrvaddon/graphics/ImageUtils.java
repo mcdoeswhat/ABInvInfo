@@ -1,12 +1,15 @@
 package com.loohp.interactivechatdiscordsrvaddon.graphics;
 
+import com.loohp.interactivechat.libs.net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer;
 import com.loohp.interactivechat.utils.ChatColorUtils;
+import com.loohp.interactivechat.utils.ColorUtils;
+import com.loohp.interactivechat.utils.InteractiveChatComponentSerializer;
+import com.loohp.interactivechatdiscordsrvaddon.InteractiveChatDiscordSrvAddon;
 import com.loohp.interactivechatdiscordsrvaddon.utils.ComponentStringUtils;
 import net.md_5.bungee.api.ChatColor;
-import net.md_5.bungee.api.chat.BaseComponent;
-import net.md_5.bungee.api.chat.TextComponent;
 
 import javax.imageio.ImageIO;
+import com.loohp.interactivechat.libs.net.kyori.adventure.text.Component;
 import java.awt.*;
 import java.awt.font.TextAttribute;
 import java.awt.geom.AffineTransform;
@@ -26,7 +29,7 @@ public class ImageUtils {
         try {
             URL url = new URL(link);
             URLConnection connection = url.openConnection();
-            connection.setConnectTimeout(4000);
+            connection.setConnectTimeout(20000);
             connection.setUseCaches(false);
             connection.setDefaultUseCaches(false);
             connection.addRequestProperty("User-Agent", "Mozilla/5.0");
@@ -36,7 +39,10 @@ public class ImageUtils {
             BufferedImage image = ImageIO.read(in);
             in.close();
             return image;
-        } catch (Exception ignored) {
+        } catch (Exception e) {
+            if (InteractiveChatDiscordSrvAddon.plugin.getConfig().getBoolean("debug")) {
+                e.printStackTrace();
+            }
             return null;
         }
     }
@@ -117,7 +123,7 @@ public class ImageUtils {
                     int red = color.getRed() + (int) (addColor.getRed() * factor);
                     int green = color.getGreen() + (int) (addColor.getGreen() * factor);
                     int blue = color.getBlue() + (int) (addColor.getBlue() * factor);
-                    color = new Color(red > 255 ? 255 : red, green > 255 ? 255 : green, blue > 255 ? 255 : blue, color.getAlpha());
+                    color = new Color(Math.min(red, 255), Math.min(green, 255), Math.min(blue, 255), color.getAlpha());
                     image.setRGB(x, y, color.getRGB());
                 }
             }
@@ -154,7 +160,7 @@ public class ImageUtils {
                     int red = color.getRed() - value;
                     int green = color.getGreen() - value;
                     int blue = color.getBlue() - value;
-                    color = new Color(red < 0 ? 0 : red, green < 0 ? 0 : green, blue < 0 ? 0 : blue, color.getAlpha());
+                    color = new Color(Math.max(red, 0), Math.max(green, 0), Math.max(blue, 0), color.getAlpha());
                     image.setRGB(x, y, color.getRGB());
                 }
             }
@@ -328,8 +334,8 @@ public class ImageUtils {
         return b;
     }
 
-    public static BufferedImage printComponentNoShadow(BufferedImage image, BaseComponent baseComponent, int centerX, int topY, float fontSize, boolean dynamicFontSize) {
-        String text = ComponentStringUtils.toLegacyString(baseComponent);
+    public static BufferedImage printComponentNoShadow(BufferedImage image, Component component, int centerX, int topY, float fontSize, boolean dynamicFontSize) {
+        String text = InteractiveChatComponentSerializer.bungeecordApiLegacy().serialize(component, InteractiveChatDiscordSrvAddon.plugin.language);
         String striped = ChatColorUtils.stripColor(text);
 
         if (dynamicFontSize) {
@@ -350,7 +356,7 @@ public class ImageUtils {
         while (!text.trim().isEmpty()) {
             String current = text.substring(0, 1);
             if (current.equals(String.valueOf(ChatColor.COLOR_CHAR)) && text.length() > 1) {
-                if (text.substring(1, 2).equals("x")) {
+                if (text.charAt(1) == 'x') {
                     String formatting = text.substring(0, 14);
                     if (ChatColorUtils.isLegal(formatting)) {
                         switch (applyFormatting(g, formatting, 1)) {
@@ -415,14 +421,32 @@ public class ImageUtils {
         return image;
     }
 
-    public static BufferedImage printComponent(BufferedImage image, BaseComponent baseComponent, int topX, int topY, float fontSize) {
-        image = printComponent(image, baseComponent, (int) (topX + (fontSize * 0.15)), (int) (topY + (fontSize * 0.15)), fontSize, CHAT_COLOR_BACKGROUND_FACTOR);
-        return printComponent(image, baseComponent, topX, topY, fontSize, 1);
+    public static BufferedImage printComponentRightAligned(BufferedImage image, Component component, int topX, int topY, float fontSize) {
+        BufferedImage textImage = new BufferedImage(image.getWidth(), image.getHeight(), BufferedImage.TYPE_INT_ARGB);
+        textImage = printComponent(textImage, component, 0, 0, fontSize);
+        int lastX = 0;
+        for (int x = 0; x < textImage.getWidth() - 9; x++) {
+            for (int y = 0; y < textImage.getHeight(); y++) {
+                if (textImage.getRGB(x, y) != 0) {
+                    lastX = x;
+                    break;
+                }
+            }
+        }
+        Graphics2D g = image.createGraphics();
+        g.drawImage(textImage, topX - lastX, topY, null);
+        g.dispose();
+        return image;
     }
 
-    private static BufferedImage printComponent(BufferedImage image, BaseComponent baseComponent, int topX, int topY, float fontSize, double factor) {
-        String text = ComponentStringUtils.toLegacyString(baseComponent);
-        text = new TextComponent(ChatColorUtils.getFirstColors(text)).toLegacyText() + text;
+    public static BufferedImage printComponent(BufferedImage image, Component component, int topX, int topY, float fontSize) {
+        image = printComponent(image, component, (int) (topX + (fontSize * 0.15)), (int) (topY + (fontSize * 0.15)), fontSize, CHAT_COLOR_BACKGROUND_FACTOR);
+        return printComponent(image, component, topX, topY, fontSize, 1);
+    }
+
+    private static BufferedImage printComponent(BufferedImage image, Component component, int topX, int topY, float fontSize, double factor) {
+        String text = InteractiveChatComponentSerializer.bungeecordApiLegacy().serialize(component, InteractiveChatDiscordSrvAddon.plugin.language);
+        text = InteractiveChatComponentSerializer.bungeecordApiLegacy().serialize(LegacyComponentSerializer.legacySection().deserialize(ChatColorUtils.getFirstColors(text))) + text;
         String striped = ChatColorUtils.stripColor(text);
 
         BufferedImage textImage = new BufferedImage(image.getWidth(), image.getHeight() * 2, BufferedImage.TYPE_INT_ARGB);
@@ -512,7 +536,7 @@ public class ImageUtils {
                             g.setFont(font.deriveFont(font.getStyle() & ~Font.ITALIC & ~Font.BOLD));
                             magic = MagicFormat.RESET;
                             try {
-                                g.setColor(darker(chatColor.getColor(), factor));
+                                g.setColor(darker(ColorUtils.getColor(chatColor), factor));
                             } catch (Exception e) {
                             }
                         } else {
@@ -543,12 +567,12 @@ public class ImageUtils {
                     if (color.charAt(1) == 'x') {
                         String hex = "#" + String.valueOf(color.charAt(3)) + String.valueOf(color.charAt(5)) + String.valueOf(color.charAt(7)) + String.valueOf(color.charAt(9)) + String.valueOf(color.charAt(11)) + String.valueOf(color.charAt(13));
                         try {
-                            g.setColor(darker(ChatColor.of(hex).getColor(), factor));
+                            g.setColor(darker(ColorUtils.getColor(ChatColor.of(hex)), factor));
                         } catch (Exception e) {
                         }
                     } else {
                         try {
-                            g.setColor(darker(ChatColor.getByChar(color.charAt(1)).getColor(), factor));
+                            g.setColor(darker(ColorUtils.getColor(ChatColor.getByChar(color.charAt(1))), factor));
                         } catch (Exception e) {
                         }
                     }
@@ -566,10 +590,7 @@ public class ImageUtils {
     }
 
     private static Color darker(Color color, double factor) {
-        return new Color(Math.max((int) (color.getRed() * factor), 0),
-                Math.max((int) (color.getGreen() * factor), 0),
-                Math.max((int) (color.getBlue() * factor), 0),
-                color.getAlpha());
+        return new Color(Math.max((int) (color.getRed() * factor), 0), Math.max((int) (color.getGreen() * factor), 0), Math.max((int) (color.getBlue() * factor), 0), color.getAlpha());
     }
 
     public static enum MagicFormat {
@@ -577,3 +598,4 @@ public class ImageUtils {
     }
 
 }
+

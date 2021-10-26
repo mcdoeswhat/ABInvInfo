@@ -1,17 +1,18 @@
 package com.loohp.interactivechatdiscordsrvaddon;
 
+import com.earth2me.essentials.Essentials;
+import com.earth2me.essentials.User;
 import com.lishid.openinv.OpenInv;
 import com.loohp.interactivechat.InteractiveChat;
 import com.loohp.interactivechat.registry.Registry;
 import com.loohp.interactivechat.utils.ChatColorUtils;
+import com.loohp.interactivechat.utils.ColorUtils;
 import com.loohp.interactivechat.utils.LanguageUtils;
 import com.loohp.interactivechatdiscordsrvaddon.graphics.ImageGeneration;
 import com.loohp.interactivechatdiscordsrvaddon.graphics.ImageUtils;
-import com.loohp.interactivechatdiscordsrvaddon.graphics.MCFont;
 import com.loohp.interactivechatdiscordsrvaddon.metrics.Charts;
 import com.loohp.interactivechatdiscordsrvaddon.metrics.Metrics;
 import com.loohp.interactivechatdiscordsrvaddon.registies.InteractiveChatRegistry;
-import com.loohp.interactivechatdiscordsrvaddon.utils.ColorUtils;
 import me.albert.amazingbot.AmazingBot;
 import me.albert.amazingbot.bot.Bot;
 import me.albert.amazingbot.events.GroupMessageEvent;
@@ -34,9 +35,16 @@ import java.io.IOException;
 import java.util.List;
 import java.util.*;
 import java.util.concurrent.atomic.AtomicLong;
+import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 public class InteractiveChatDiscordSrvAddon extends JavaPlugin implements Listener {
+
+    public static void main(String[] args) {
+        String regex = "[a-zA-Z0-9_]*";
+        Pattern pattern = Pattern.compile(regex);
+        System.out.println(pattern.matcher("dwa啊dwa").matches());
+    }
 
     public static byte[] imageToBytes(BufferedImage bImage) {
         ByteArrayOutputStream out = new ByteArrayOutputStream();
@@ -49,6 +57,14 @@ public class InteractiveChatDiscordSrvAddon extends JavaPlugin implements Listen
     }
 
     public static OfflinePlayer getOffPlayer(String name) {
+        if (Bukkit.getPluginManager().getPlugin("Essentials") != null) {
+            Essentials essentials = (Essentials) Bukkit.getPluginManager().getPlugin("Essentials");
+            User user = essentials.getUser(name);
+            if (user == null) {
+                return null;
+            }
+            return Bukkit.getOfflinePlayer(user.getName());
+        }
         for (OfflinePlayer offlinePlayer : Bukkit.getOfflinePlayers()) {
             if (offlinePlayer == null) {
                 continue;
@@ -75,12 +91,18 @@ public class InteractiveChatDiscordSrvAddon extends JavaPlugin implements Listen
             if (msg.endsWith("的" + word) && !msg.equalsIgnoreCase("我的" + word)) {
                 if (AmazingBot.getInstance().getConfig().getStringList("owners").contains(String.valueOf(e.getUserID()))) {
                     String user = msg.replace("的" + word, "");
-                    OfflinePlayer offlinePlayer = getOffPlayer(user);
-                    if (offlinePlayer == null) {
-                        e.response("没有这个玩家");
+                    String regex = "[a-zA-Z0-9_]*";
+                    Pattern pattern = Pattern.compile(regex);
+                    if (pattern.matcher(user).matches()) {
+                        OfflinePlayer offlinePlayer = getOffPlayer(user);
+                        if (offlinePlayer == null) {
+                            e.response("没有这个玩家");
+                            return;
+                        }
+                        uuid = offlinePlayer.getUniqueId();
+                    } else {
                         return;
                     }
-                    uuid = offlinePlayer.getUniqueId();
                 } else {
                     return;
                 }
@@ -98,7 +120,7 @@ public class InteractiveChatDiscordSrvAddon extends JavaPlugin implements Listen
                         p = openInv.loadPlayer(offlinePlayer);
                     }
                     if (p == null) {
-                        e.response("此玩家不存在!");
+                        e.response("离线获取玩家失败!,请检查OpenInv是否工作正常!");
                         return;
                     }
                 }
@@ -110,7 +132,10 @@ public class InteractiveChatDiscordSrvAddon extends JavaPlugin implements Listen
                 }
                 Image image1 = e.getEvent().getGroup().uploadImage(ExternalResource.create(imageToBytes(image)));
                 e.response(image1);
-            } catch (Exception ignored) {
+            } catch (Exception ex) {
+                if (InteractiveChatDiscordSrvAddon.plugin.getConfig().getBoolean("debug")) {
+                    ex.printStackTrace();
+                }
                 e.response("未知错误!");
             }
         }
@@ -659,7 +684,6 @@ public class InteractiveChatDiscordSrvAddon extends JavaPlugin implements Listen
                 InteractiveChatDiscordSrvAddon.plugin.puppet = puppet;
                 InteractiveChatDiscordSrvAddon.plugin.armor = armor;
 
-                MCFont.reloadFonts();
 
                 int total = blocks.size() + items.size() + font.size() + misc.size() + gui.size() + banner.size() + puppet.size() + armor.size();
                 Bukkit.getConsoleSender().sendMessage(ChatColor.GREEN + "[ICDiscordSrvAddon] Loaded " + total + " textures!");
